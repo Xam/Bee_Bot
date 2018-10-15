@@ -1,2 +1,2 @@
-# Bee_Bot
-A Python Discord Bot 
+# Bee Bot
+A Python Discord Bot
