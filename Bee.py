@@ -10,7 +10,9 @@ from sqlite3 import Error
 
 DBF = "C:\\Users\\Thorn\\Desktop\\BOTS\\Beeees\\DB\\Money.db"
 INIT_BEES = 25
-client = commands.Bot(command_prefix=commands.when_mentioned_or('hey bee bot ', '!', '?'), description='The Willy Wonka of Bees!')
+
+help_attrs = dict(hidden=True, description='Help Command')
+client = commands.Bot(command_prefix=commands.when_mentioned_or('hey bee bot ', '!', '?'), description='== Professor of Bee-conomics ==', help_attrs=help_attrs)
 
 
 def create_connection(db_file):
@@ -31,12 +33,6 @@ def create_user(conn, users):
     return cur.lastrowid
 
 
-def select_user_by_id(conn, id):
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE id=?", (id,))
-    rows = cur.fetchall()
-
-
 def select_user_by_name(conn, name):
     cur = conn.cursor()
     cur.execute("SELECT * FROM users WHERE name=?", (name,))
@@ -49,26 +45,12 @@ def select_all_users(conn):
     rows = cur.fetchall()
 
 
-def update_user_by_id(conn, users):
-    sql = ''' UPDATE users
-              SET bees = ? 
-              WHERE id = ?'''
-    cur = conn.cursor()
-    cur.execute(sql, users)
-
-
 def update_user_by_name(conn, users):
     sql = ''' UPDATE users
               SET bees = ? 
               WHERE name = ?'''
     cur = conn.cursor()
     cur.execute(sql, users)
-
-
-def delete_user_by_id(conn, id):
-    sql = 'DELETE FROM users WHERE id=?'
-    cur = conn.cursor()
-    cur.execute(sql, (id,))
 
 
 def delete_user_by_name(conn, name):
@@ -106,15 +88,8 @@ def sub_bees(conn, name, bees):
     update_user_by_name(conn, args)
 
 
-#add on react event
-#add balance command
-#add give command
-#add release command
-#change command start
-
-
-@client.command(name='roll', description='Rolls a NdN dice.', brief='Answers from Entropy.', aliases=['dice'], pass_context=True)
-async def roll_dice(context, dice='none'):
+@client.command(name='roll', description='Rolls a NdN dice.', brief=': Answers from Entropy.', aliases=['dice'], ignore_extra=True)
+async def roll_com(dice='NdN'):
     proc = str(dice)
     try:
         rolls, limit = map(int, proc.split('d'))
@@ -123,6 +98,41 @@ async def roll_dice(context, dice='none'):
         return
     result = ', '.join(str(random.randint(1, limit)) for r in range(rolls))
     await client.say(result)
+
+
+@client.command(name='give', description='Gives a user # Bees.', brief=': Give a lucky someone some Bees.', aliases=['pass'], ignore_extra=True)
+async def give_com(user, bees):
+    print('Give')
+
+
+@client.command(name='balance', description='Get your Bee balance.', brief=': See how many Bees you have.', aliases=['account'], ignore_extra=True)
+async def balance_com():
+    print('Balance')
+
+
+@client.command(name='release', description='Free # Bees into the channel.', brief=': Free some Bees!.', aliases=['free'], ignore_extra=True)
+async def release_com(bees):
+    print('Release')
+
+
+@client.event
+async def on_reaction_add(reaction, user):
+    #channel = reaction.message.channel
+    conn = sqlite3.connect(DBF)
+    if conn is not None:
+        with conn:
+            if reaction.emoji == '\U0001F41D': #BEE
+                sub_bees(conn, user.name, 1)
+                print('\nAdding 1 bee to ' + user.name)
+                add_bees(conn, reaction.message.author.name, 1)
+                print('Subing 1 bee from ' + reaction.message.author.name)
+            #await client.send_message(channel, '{} has added {} to the the message {}'.format(user.name, reaction.emoji, reaction.message.content))
+            await client.process_commands(reaction.message)
+    else:
+        print("Error! cannot create the database connection.")
+
+
+#add on remove react event
 
 
 @client.event
