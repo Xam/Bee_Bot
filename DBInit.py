@@ -26,11 +26,16 @@ def main():
                                         name text NOT NULL,
                                         bees integer NOT NULL
                                         ); """
- 
+    sql_create_released_table = """ CREATE TABLE IF NOT EXISTS Released (
+                                        id integer PRIMARY KEY,
+                                        channel text NOT NULL,
+                                        bees integer NOT NULL
+                                        ); """
 
     conn = create_connection("C:\\Users\\Thorn\\Desktop\\BOTS\\Beeees\\DB\\Money.db")
     if conn is not None:
-        create_table(conn, sql_create_users_table)
+        #create_table(conn, sql_create_users_table)
+        create_table(conn, sql_create_released_table)
     else:
         print("Error! cannot create the database connection.")
 
