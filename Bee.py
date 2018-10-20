@@ -9,6 +9,7 @@ from discord.ext.commands import Bot
 from sqlite3 import Error
 
 DBF = 'C:\\Users\\Thorn\\Desktop\\BOTS\\Beeees\\DB\\Money.db'
+DBE = 'Error! cannot create the database connection.'
 INIT_BEES = 25
 
 help_attrs = dict(hidden=True, description='Help Command')
@@ -29,7 +30,7 @@ BV = BeeVars()
 #### ---==== User DB ====--- ####
 
 def create_user(conn, users):
-    sql = ''' INSERT INTO users(name,bees) VALUES(?,?) '''
+    sql = ''' INSERT INTO Users(name,bees) VALUES(?,?) '''
     cur = conn.cursor()
     cur.execute(sql, users)
     return cur.lastrowid
@@ -37,25 +38,25 @@ def create_user(conn, users):
 
 def select_user_by_name(conn, name):
     cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE name=?", (name,))
+    cur.execute("SELECT * FROM Users WHERE name=?", (name,))
     rows = cur.fetchall()
 
 
 def update_user_by_name(conn, users):
-    sql = ''' UPDATE users SET bees = ? WHERE name = ?'''
+    sql = ''' UPDATE Users SET bees = ? WHERE name = ?'''
     cur = conn.cursor()
     cur.execute(sql, users)
 
 
 def delete_all_users(conn):
-    sql = 'DELETE FROM users'
+    sql = 'DELETE FROM Users'
     cur = conn.cursor()
     cur.execute(sql)
 
 
 def user_exists(conn, name):
     cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE name=?", (name,))
+    cur.execute("SELECT * FROM Users WHERE name=?", (name,))
     row = cur.fetchone()
     if str(row) == 'None':
         return 0
@@ -64,7 +65,7 @@ def user_exists(conn, name):
 
 def get_bees(conn, name):
     cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE name=?", (name,))
+    cur.execute("SELECT * FROM Users WHERE name=?", (name,))
     bees = cur.fetchone()
     if str(bees) == 'None':
         return -1
@@ -94,10 +95,10 @@ def sub_bees(conn, name, bees):
     return 1
 
 
-#### ---==== Released DB ====--- ####
+#### ---==== Channel_Vars DB ====--- ####
 
 def create_channel(conn, channel):
-    sql = ''' INSERT INTO Released(channel,bees) VALUES(?,?) '''
+    sql = ''' INSERT INTO Channel_Vars(channel,bees) VALUES(?,?) '''
     cur = conn.cursor()
     cur.execute(sql, channel)
     return cur.lastrowid
@@ -105,31 +106,31 @@ def create_channel(conn, channel):
 
 def select_channel_by_name(conn, channel):
     cur = conn.cursor()
-    cur.execute("SELECT * FROM Released WHERE channel=?", (channel,))
+    cur.execute("SELECT * FROM Channel_Vars WHERE channel=?", (channel,))
     rows = cur.fetchall()
 
 
 def update_channel_by_name(conn, channel):
-    sql = ''' UPDATE Released SET bees = ? WHERE channel = ?'''
+    sql = ''' UPDATE Channel_Vars SET bees = ? WHERE channel = ?'''
     cur = conn.cursor()
     cur.execute(sql, channel)
 
 
 def delete_channel_by_name(conn, channel):
-    sql = 'DELETE FROM Released WHERE channel=?'
+    sql = 'DELETE FROM Channel_Vars WHERE channel=?'
     cur = conn.cursor()
     cur.execute(sql, (channel,))
 
 
 def delete_all_channels(conn):
-    sql = 'DELETE FROM Released'
+    sql = 'DELETE FROM Channel_Vars'
     cur = conn.cursor()
     cur.execute(sql)
 
 
 def get_channel_bees(conn, channel):
     cur = conn.cursor()
-    cur.execute("SELECT * FROM Released WHERE channel=?", (channel,))
+    cur.execute("SELECT * FROM Channel_Vars WHERE channel=?", (channel,))
     bees = cur.fetchone()
     return bees[2]
 
@@ -154,7 +155,7 @@ def sub_channel_bees(conn, channel, bees):
 
 
 @client.command(name='roll', description='Rolls a NdN dice.', brief=': Answers from Entropy.', aliases=['dice'], ignore_extra=True, enabled=True)
-async def roll_com(dice='NdN'):
+async def roll_com(dice='NdN'):  # limit each number
     proc = str(dice)
     try:
         rolls, limit = map(int, proc.split('d'))
@@ -165,13 +166,20 @@ async def roll_com(dice='NdN'):
     await client.say(result)
 
 
-@client.command(name='give', description='Gives a user # Bees.', brief=': Give a lucky someone some Bees.', aliases=['pass'], ignore_extra=True, enabled=True, pass_context=True)
+@roll_com.error
+async def roll_com_error(ctx, error):
+    print('\nI dont understand.. [error in roll]')
+
+
+@client.command(name='give', description='Gives a user # Bees. No Nicknames please.', brief=': Give a lucky someone some Bees.', aliases=['pass'], ignore_extra=True, enabled=True, pass_context=True)
 async def give_com(ctx, user, bees):  #PM confirmation.
     conn = sqlite3.connect(DBF)
     if conn is not None:
         with conn:
             bees_int = int(bees)
             reciever = user.capitalize()
+            server = ctx.message.server
+            reciever_member = server.get_member_named(reciever)
             giver = ctx.message.author.name
             exists = user_exists(conn, reciever)
             if exists == 1:
@@ -179,18 +187,26 @@ async def give_com(ctx, user, bees):  #PM confirmation.
                 if can_add == 1:
                     add_bees(conn, reciever, bees_int)
                     print('\nGiving ' + bees + ' bees, from ' + giver + ' to ' + reciever)
+                    if bees_int > 1:
+                        snd = 'You have given {0} {1} bees!'.format(reciever, bees)
+                        rcv = '{0} has given you {1} bees!'.format(giver, bees)
+                    else:
+                        snd = 'You have given {0} a bee!'.format(reciever)
+                        rcv = '{0} has given you a bee!'.format(giver)
+                    await client.send_message(ctx.message.author, snd)
+                    await client.send_message(reciever_member, rcv)
                 else:
                     print('\nNot enough bees to give...')
             else:
                 msg = 'Uhh.. Who is {0}?  I don\'t understand nicknames.'.format(reciever)
                 await client.send_message(ctx.message.channel, msg)
     else:
-        print('Error! cannot create the database connection.')
+        print(DBE)
 
 
 @give_com.error
 async def give_com_error(ctx, error):
-    print('I dont understand..') #unpack context and error
+    print('\nI dont understand.. [error in give]') #unpack context and error
 
 
 async def balance_main(ctx):
@@ -214,7 +230,7 @@ async def balance_main(ctx):
                 msg = 'Uhh.. Who is {0}?  I think something went wrong.'.format(name)
             await client.send_message(ctx.message.channel, msg)
     else:
-        print('Error! cannot create the database connection.')
+        print(DBE)
 
 
 @client.command(name='balance', description='Get your Bee balance.', brief=': See how many Bees you have.', aliases=['account'], ignore_extra=True, enabled=True, pass_context=True)
@@ -249,7 +265,7 @@ async def release_com(ctx, bees):
                 msg = 'Not enough bees to release...'
             await client.send_message(ctx.message.channel, msg)
     else:
-        print('Error! cannot create the database connection.')
+        print(DBE)
 
 
 @client.command(name='stats', description='You shouldn\'t be able to see this...', brief=': Display debug stats.', aliases=['debug'], ignore_extra=True, enabled=True, hidden=True, pass_context=True)
@@ -295,8 +311,11 @@ async def on_reaction_add(reaction, user):
                         print('\nSubing ' + str(rand) + ' bees from ' + channel)
                         add_bees(conn, reaction.message.author.name, rand)
                         print('Adding them to ' + reaction.message.author.name)
-                        # message about  amount added
-                        # prevent gaming the system by removing then re reacting
+                        if rand > 1:
+                            msg = '{0} bees have been attracted to you via a {1} in {2}!'.format(rand, reaction.emoji, channel)
+                        else:
+                            msg = 'A bee has been attracted to you via a {1} in {2}!'.format(reaction.emoji, channel)
+                        await client.send_message(reaction.message.author, msg)
                     else:
                         print('\nNo bees in channel to add..')
                         BV.wilt = True
@@ -304,7 +323,7 @@ async def on_reaction_add(reaction, user):
 
             await client.process_commands(reaction.message, True)
     else:
-        print('Error! cannot create the database connection.')
+        print(DBE)
 
 
 @client.event
@@ -333,7 +352,7 @@ async def on_reaction_remove(reaction, user):
 
             await client.process_commands(reaction.message, True)
     else:
-        print('Error! cannot create the database connection.')
+        print(DBE)
 
 
 @client.event
@@ -350,7 +369,7 @@ async def on_member_join(member):
                 if channel.name == 'general':
                     await client.send_message(channel, msg)
     else:
-        print('Error! cannot create the database connection.')
+        print(DBE)
 
 
 @client.event
@@ -365,7 +384,7 @@ async def on_channel_create(channel):
                 create_channel(conn, channel_data)
                 print(ch + ' added...')
     else:
-        print('Error! cannot create the database connection.')
+        print(DBE)
 
 
 @client.event
@@ -379,7 +398,7 @@ async def on_channel_delete(channel):
                 delete_channel_by_name(conn, ch)
                 print(ch + ' removed...')
     else:
-        print('Error! cannot create the database connection.')
+        print(DBE)
 
 
 @client.event
@@ -395,7 +414,7 @@ async def on_message(message):
             if message.content.startswith('~InitMemberList'):
                 if str(message.author) == 'Thorn#6213':
                     delete_all_users(conn)
-                    print('\nFormatting user DB:')
+                    print('\nFormatting User DB:')
                     x = message.server.members
                     for member in x:
                         if member.name != client.user.name:
@@ -411,7 +430,7 @@ async def on_message(message):
             if message.content.startswith('~InitChannelList'):
                 if str(message.author) == 'Thorn#6213':
                     delete_all_channels(conn)
-                    print('\nFormatting channel DB:')
+                    print('\nFormatting Channel_Vars DB:')
                     for channel in client.get_all_channels():
                         ct = str(channel.type)
                         if ct == 'text':
@@ -430,11 +449,11 @@ async def on_message(message):
             await client.process_commands(message)
 
             #Tell bot off...
-            if message.content.startswith('shut up'):
+            if message.content.startswith('shut up bee'):
                 msg = 'Awwww... *sadly bumbles to the corner*'
                 await client.send_message(message.channel, msg)
     else:
-        print('Error! cannot create the database connection.')
+        print(DBE)
 
 
 @client.event
@@ -444,22 +463,12 @@ async def on_ready():
     print(client.user.name + ' logging in...')
     print('Bot ID: ' + client.user.id)
     print('--------------------------\n')
-    #print('Registering Channels:')
-    #for channel in client.get_all_channels():
-    #    ct = str(channel.type)
-    #    if ct == 'text':
-    #        ch = str(channel)
-    #        BV.free_bees[ch] = 0
-    #        print('     ' + ch + '...')
     print('=== Ready ===\n')
 
 
 os.system('title BOT CONSOLE')
 os.system('cls')
 client.run('NOT_IN_GIT')
-
-
-# Add proper action notifications like give in PM ect.
 
 
 ###==== Refrence ====###
