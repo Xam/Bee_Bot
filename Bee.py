@@ -19,7 +19,6 @@ client = commands.Bot(command_prefix=commands.when_mentioned_or('hey bee bot ple
 class BeeVars:
     inst = False
     wilt = False
-    #free_bees = {}
     balance_low = ['..Oh I\'m so sorry..', '..Well THIS is embarrassing.', '..Ouch', '.. Ohh-- that stings.']
     balance_med = ['Don\'t spend them all in one place..', 'Saving up for a BEE-MW?', 'Well aren\'t you just a... swell.. person..']
     balance_high = ['Damn you\'re rollin in it!', 'Do you need ointment?', 'Please don\'t put them in a vault and dive in..']
@@ -255,14 +254,17 @@ async def release_com(ctx, bees):
             if can_add == 1:
                 ct = str(ctx.message.channel.type)
                 if ct == 'text':
-                    print('\nReleasing ' + bees + ' bees into ' + channel)
                     msg = '{0} has released {1} Bees into the channel!'.format(name, bees)
                     add_channel_bees(conn, channel, bees_int)
+                    print('\nReleasing ' + bees + ' bees into ' + channel)
                 else:
                     msg = 'Oops you are not in a public text channel...'
             else:
                 print('\nNot enough bees to release...')
                 msg = 'Not enough bees to release...'
+            if bees_int >=30:
+                await client.send_file(ctx.message.channel, 'MEDIA\\Oprah.gif')
+                msg += ' O.o Oh god they\'re everywhere!'
             await client.send_message(ctx.message.channel, msg)
     else:
         print(DBE)
@@ -314,7 +316,7 @@ async def on_reaction_add(reaction, user):
                         if rand > 1:
                             msg = '{0} bees have been attracted to you via a {1} in {2}!'.format(rand, reaction.emoji, channel)
                         else:
-                            msg = 'A bee has been attracted to you via a {1} in {2}!'.format(reaction.emoji, channel)
+                            msg = 'A bee has been attracted to you via a {0} in {1}!'.format(reaction.emoji, channel)
                         await client.send_message(reaction.message.author, msg)
                     else:
                         print('\nNo bees in channel to add..')
@@ -451,6 +453,7 @@ async def on_message(message):
             #Tell bot off...
             if message.content.startswith('shut up bee'):
                 msg = 'Awwww... *sadly bumbles to the corner*'
+                await client.send_file(message.channel, 'MEDIA\\Sad.gif')
                 await client.send_message(message.channel, msg)
     else:
         print(DBE)
