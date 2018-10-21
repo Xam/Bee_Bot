@@ -176,7 +176,9 @@ async def give_com(ctx, user, bees):  #PM confirmation.
     if conn is not None:
         with conn:
             bees_int = int(bees)
-            reciever = user.capitalize()
+            print(user)
+            reciever = user.title() #capitalize()
+            print(reciever)
             server = ctx.message.server
             reciever_member = server.get_member_named(reciever)
             giver = ctx.message.author.name
@@ -203,9 +205,9 @@ async def give_com(ctx, user, bees):  #PM confirmation.
         print(DBE)
 
 
-@give_com.error
-async def give_com_error(ctx, error):
-    print('\nI dont understand.. [error in give]') #unpack context and error
+#@give_com.error
+#async def give_com_error(ctx, error):
+#    print('\nI dont understand.. [error in give]') #unpack context and error
 
 
 async def balance_main(ctx):
@@ -472,12 +474,3 @@ async def on_ready():
 os.system('title BOT CONSOLE')
 os.system('cls')
 client.run('NOT_IN_GIT')
-
-
-###==== Refrence ====###
-# {0.author.mention} @Name
-# {0.author.name} Name
-# {0.author} Name+number  <-- Use for account matching
-# pass_context=True + context peram = usable message refrence in function --> context.message.author.mention
-# channel = reaction.message.channel
-# bees_caught = BV.free_bees.get('general', 0)
